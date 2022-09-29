@@ -49,6 +49,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: SessionLocal 
 
 @app.post("/signup", status_code=status.HTTP_201_CREATED)
 def signup(user: schemas.CreateUser, session: SessionLocal = Depends(get_session)):
+    """
+    User API to signup the user in the application.
+    Schema Used: CreateUser
+    """
     new_user = models.User(username=user.username, password=get_password_hash(user.password))
     try:
         session.add(new_user)
@@ -60,6 +64,11 @@ def signup(user: schemas.CreateUser, session: SessionLocal = Depends(get_session
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), session: SessionLocal = Depends(get_session)):
+    """
+    API to login the user.
+    Required form fields: username, password
+    On Success: JWT access token will be returned.
+    """
     username = form_data.username
     password = form_data.password
     if authenticate_user(username, password, session):
@@ -83,12 +92,22 @@ def index(token: str = Depends(oauth2_scheme), session: SessionLocal = Depends(g
 
 @app.get("/tasks", response_model=List[schemas.Todo])
 def tasks(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    """
+    Returns list of all the Tasks of the User.
+    User Login required.
+    """
     user = get_current_user(token, session)
     todo_list = session.query(models.Todo).filter(models.Todo.user==user).all()
     return todo_list
 
 @app.post("/task", response_model=schemas.Todo, status_code=status.HTTP_201_CREATED)
 def create_task(todo: schemas.TodoTask, token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    """
+    API to create Task.
+    User Login required.
+    Creates Task with the logged in user.
+    On Success: Returns the task.
+    """
     todo_obj = models.Todo(task=todo.task)
     user = get_current_user(token, session)
     todo_obj.user_id = user.id
@@ -100,6 +119,12 @@ def create_task(todo: schemas.TodoTask, token: str = Depends(oauth2_scheme), ses
 
 @app.get("/task/{id}", response_model=schemas.TodoTask)
 def get_task(id: int, token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    """
+    API endpoint to return a task of the user.
+    Required parameter: Task Id.
+    User Login required.
+    On Success: Returns the task.
+    """
     todo = session.query(models.Todo).get(id)
     if not todo:
         raise HTTPException(status_code=404, detail=f"Todo item with id {id} not found")
@@ -110,6 +135,13 @@ def get_task(id: int, token: str = Depends(oauth2_scheme), session: Session = De
 
 @app.put("/task/{id}", response_model=schemas.TodoTask)
 def update_task(id: int, todo_new: schemas.TodoTask, token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    """
+    API endpoint to update a task.
+    Required parameter: Task Id.
+    Schema Used: TodoTask
+    User Login required.
+    On Success: Returns the updated Task.
+    """
     todo = session.query(models.Todo).get(id)
     if not todo:
         raise HTTPException(status_code=404, detail=f"Todo item with id {id} not found")
@@ -122,6 +154,12 @@ def update_task(id: int, todo_new: schemas.TodoTask, token: str = Depends(oauth2
 
 @app.delete("/task/{id}")
 def delete_task(id: int, token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    """
+    API endpoint to delete a task.
+    Required parameter: Task Id.
+    User Login required.
+    On Success: Returns Success message.
+    """
     todo = session.query(models.Todo).get(id)
     if not todo:
         raise HTTPException(status_code=404, detail=f"Todo item with id {id} not found")
